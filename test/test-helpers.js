@@ -255,6 +255,12 @@ function seedMaliciousThing(db, user, thing) {
     );
 }
 
+function makeAuthHeader(user) {
+  const token = Buffer.from(`${user.user_name}:${user.password}`.toString('base64'));
+  return `basic ${token}`;
+}
+
+
 module.exports = {
   makeUsersArray,
   makeThingsArray,
@@ -262,6 +268,7 @@ module.exports = {
   makeExpectedThingReviews,
   makeMaliciousThing,
   makeReviewsArray,
+  makeAuthHeader,
 
   makeThingsFixtures,
   cleanTables,

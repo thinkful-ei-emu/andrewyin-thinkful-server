@@ -1,4 +1,4 @@
-const xss = require('xss')
+const xss = require('xss');
 
 const ReviewsService = {
   getById(db, id) {
@@ -30,7 +30,7 @@ const ReviewsService = {
         'usr.id',
       )
       .where('rev.id', id)
-      .first()
+      .first();
   },
 
   insertReview(db, newReview) {
@@ -41,7 +41,7 @@ const ReviewsService = {
       .then(([review]) => review)
       .then(review =>
         ReviewsService.getById(db, review.id)
-      )
+      );
   },
 
   serializeReview(review) {
@@ -50,10 +50,10 @@ const ReviewsService = {
       rating: review.rating,
       text: xss(review.text),
       thing_id: review.thing_id,
-      date_created: review.date_created,
+      date_created: new Date(review.date_created).toLocaleString('en-US', { timeZone: 'UTC' }),
       user: review.user || {},
-    }
+    };
   }
-}
+};
 
-module.exports = ReviewsService
+module.exports = ReviewsService;

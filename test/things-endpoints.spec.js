@@ -25,26 +25,6 @@ describe('Things Endpoints', function () {
 
   afterEach('cleanup', () => helpers.cleanTables(db));
 
-
-  describe.only('Protected Endpoints', () => {
-    beforeEach('insert articles', () => {
-      return helpers.seedThingsTables(
-        db,
-        testUsers,
-        testThings,
-        testReviews
-      );
-    });
-
-    describe('get', () => {
-      it('return 401 when missing basic token', () => {
-        return supertest(app)
-          .get('/api/things/123')
-          .expect(401, { error: 'missing basic token' });
-      });
-    });
-  });
-
   describe('GET /api/things', () => {
     context('Given no things', () => {
       it('responds with 200 and an empty list', () => {
@@ -60,7 +40,7 @@ describe('Things Endpoints', function () {
           db,
           testUsers,
           testThings,
-          testReviews,
+          testReviews
         )
       );
 
@@ -102,99 +82,60 @@ describe('Things Endpoints', function () {
             expect(res.body[0].content).to.eql(expectedThing.content);
           });
       });
+
     });
   });
 
-  describe('GET /api/things/:thing_id', () => {
-    context('Given no things', () => {
-      it('responds with 404', () => {
-        const thingId = 123456;
-        return supertest(app)
-          .get(`/api/things/${thingId}`)
-          .expect(404, { error: 'Thing doesn\'t exist' });
+  describe('API calls to protected endpoint', () => {
+
+    describe('GET /api/things/:thing_id/reviews', () => {
+      context('Given no things', () => {
+
+        it('responds with 404', () => {
+          const thingId = 123456;
+          return supertest(app)
+            .get(`/api/things/${thingId}/reviews`)
+            .set('Authorization', helpers.makeAuthHeader(testUsers[0]))
+            .expect(404, { error: 'Thing doesn\'t exist' });
+        });
       });
-    });
 
-    context('Given there are things in the database', () => {
-      beforeEach('insert things', () =>
-        helpers.seedThingsTables(
-          db,
-          testUsers,
-          testThings,
-          testReviews,
-        )
-      );
-
-      it('responds with 200 and the specified thing', () => {
-        const thingId = 2;
-        const expectedThing = helpers.makeExpectedThing(
-          testUsers,
-          testThings[thingId - 1],
-          testReviews,
+      context('Given there are reviews for thing in the database', () => {
+        beforeEach('insert things', () =>
+          helpers.seedThingsTables(
+            db,
+            testUsers,
+            testThings,
+            testReviews,
+          )
         );
 
-        return supertest(app)
-          .get(`/api/things/${thingId}`)
-          .expect(200, expectedThing);
-      });
-    });
+        it('responds with 200 and the specified reviews', () => {
+          const thingId = 1;
+          const expectedReviews = helpers.makeExpectedThingReviews(
+            testUsers, thingId, testReviews
+          );
+  
+          return supertest(app)
+            .get(`/api/things/${thingId}/reviews`)
+            .set('Authorization', helpers.makeAuthHeader(testUsers[0]))
+            .expect(200, expectedReviews);
+        });
+    
+        it('responds 401 "Missing basic token" when missing basic token', () => {
+          return supertest(app)
+            .get('/api/things/123')
+            .expect(401, { error: 'Missing basic token.' });
+        });
 
-    context('Given an XSS attack thing', () => {
-      const testUser = helpers.makeUsersArray()[1];
-      const {
-        maliciousThing,
-        expectedThing,
-      } = helpers.makeMaliciousThing(testUser);
+        it('responds 401 "Unauthorized Request." when no credentials provided', () => {
+          const userNoCreds = { user_name: '', password: '' };
+          return supertest(app)
+            .get('/api/things/123')
+            .set('Authorization', helpers.makeAuthHeader(userNoCreds))
+            .expect(401, { error: 'Unauthorized Request.' });
+        });
 
-      beforeEach('insert malicious thing', () => {
-        return helpers.seedMaliciousThing(
-          db,
-          testUser,
-          maliciousThing,
-        );
-      });
-
-      it('removes XSS attack content', () => {
-        return supertest(app)
-          .get(`/api/things/${maliciousThing.id}`)
-          .expect(200)
-          .expect(res => {
-            expect(res.body.title).to.eql(expectedThing.title);
-            expect(res.body.content).to.eql(expectedThing.content);
-          });
-      });
-    });
-  });
-
-  describe('GET /api/things/:thing_id/reviews', () => {
-    context('Given no things', () => {
-      it('responds with 404', () => {
-        const thingId = 123456;
-        return supertest(app)
-          .get(`/api/things/${thingId}/reviews`)
-          .expect(404, { error: 'Thing doesn\'t exist' });
-      });
-    });
-
-    context('Given there are reviews for thing in the database', () => {
-      beforeEach('insert things', () =>
-        helpers.seedThingsTables(
-          db,
-          testUsers,
-          testThings,
-          testReviews,
-        )
-      );
-
-      it('responds with 200 and the specified reviews', () => {
-        const thingId = 1;
-        const expectedReviews = helpers.makeExpectedThingReviews(
-          testUsers, thingId, testReviews
-        );
-
-        return supertest(app)
-          .get(`/api/things/${thingId}/reviews`)
-          .expect(200, expectedReviews);
       });
     });
   });
