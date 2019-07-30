@@ -1,11 +1,14 @@
+const bcrypt = require('bcryptjs');
+
+
 async function requireAuth(req, res, next) {
+  const missingBasicToken = { error: 'missing basic token' };
+  const unauthorizedRequest = { error: 'unauthorized request' };
   const authToken = req.get('Authorization') || '';
   let basicToken;
 
   if (!authToken.toLowerCase().startsWith('basic ')) {
-    return res.status(401).json({
-      error: 'missing basic token'
-    });
+    return res.status(401).json(missingBasicToken);
   }
   else {
     basicToken = authToken.split(' ')[1];
@@ -20,9 +23,7 @@ async function requireAuth(req, res, next) {
   // console.log(tokenUser, tokenPassword);
 
   if (!tokenUser || !tokenPassword) {
-    return res.status(401).json({
-      error: 'unauthorized request'
-    });
+    return res.status(401).json(unauthorizedRequest);
   }
 
   try {
@@ -30,13 +31,26 @@ async function requireAuth(req, res, next) {
       .where({ user_name: tokenUser })
       .first();
 
-    if (!user || tokenPassword !== user.password) {
-      return res.status(401).json({ error: 'unauthorized request' });
+    // if (!user || tokenPassword !== user.password) {
+    if (!user) {
+      return res.status(401).json(unauthorizedRequest);
     }
 
-    req.user = user;
+    // req.user = user;
+    // next();
 
-    next();
+    try {
+      const passwordMatch = await bcrypt.compare(tokenPassword, user.password);
+      if (!passwordMatch) {
+        return res.status(401).json(unauthorizedRequest);
+      }
+
+      req.user = user;
+      next();
+    }
+    catch (e) {
+      next();
+    }
   }
   catch (e) {
     next();
