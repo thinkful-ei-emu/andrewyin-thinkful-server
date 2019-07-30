@@ -8,7 +8,7 @@ describe('Reviews Endpoints', function () {
   const {
     testThings,
     testUsers,
-    testReviews
+    // testReviews
   } = helpers.makeThingsFixtures();
 
   before('make knex instance', () => {
@@ -25,17 +25,17 @@ describe('Reviews Endpoints', function () {
 
   afterEach('cleanup', () => helpers.cleanTables(db));
 
+
   describe('POST /api/reviews', () => {
     beforeEach('insert things', () => {
       return helpers.seedThingsTables(
         db,
         testUsers,
         testThings,
-        testReviews
       );
     });
 
-    it('creates an review, responding with 201 and the new review', function () {
+    it('creates a review, responding with 201 and the new review', function () {
       this.retries(3);
       const testThing = testThings[0];
       const testUser = testUsers[0];
@@ -43,7 +43,7 @@ describe('Reviews Endpoints', function () {
         text: 'Test new review',
         rating: 3,
         thing_id: testThing.id,
-        user_id: testUser.id,
+        // user_id: testUser.id,
       };
       return supertest(app)
         .post('/api/reviews')
@@ -71,7 +71,8 @@ describe('Reviews Endpoints', function () {
               expect(row.text).to.eql(newReview.text);
               expect(row.rating).to.eql(newReview.rating);
               expect(row.thing_id).to.eql(newReview.thing_id);
-              expect(row.user_id).to.eql(newReview.user_id);
+              expect(row.user_id).to.eql(testUser.id);
+              // expect(row.user_id).to.eql(newReview.user_id);
               // const expectedDate = new Date().toLocaleString()
               // const actualDate = new Date(row.date_created).toLocaleString()
               // expect(actualDate).to.eql(expectedDate)
@@ -79,7 +80,8 @@ describe('Reviews Endpoints', function () {
         );
     });
 
-    const requiredFields = ['text', 'rating', 'user_id', 'thing_id'];
+    const requiredFields = ['text', 'rating', 'thing_id'];
+    // const requiredFields = ['text', 'rating', 'user_id', 'thing_id'];
 
     requiredFields.forEach(field => {
       const testThing = testThings[0];
@@ -87,7 +89,7 @@ describe('Reviews Endpoints', function () {
       const newReview = {
         text: 'Test new review',
         rating: 3,
-        user_id: testUser.id,
+        // user_id: testUser.id,
         thing_id: testThing.id,
       };
 

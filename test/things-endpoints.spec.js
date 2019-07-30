@@ -25,6 +25,7 @@ describe('Things Endpoints', function () {
 
   afterEach('cleanup', () => helpers.cleanTables(db));
 
+
   describe('GET /api/things', () => {
     context('Given no things', () => {
       it('responds with 200 and an empty list', () => {
@@ -86,10 +87,77 @@ describe('Things Endpoints', function () {
     });
   });
 
+
   describe('API calls to protected endpoint', () => {
+    const missingBasicToken = { error: 'missing basic token' };
+    const unauthorizedRequest = { error: 'unauthorized request' };
+
+    describe('GET /api/things/:thing_id', () => {
+      context('Given invalid or missing credentials', () => {
+        beforeEach(() =>
+          helpers.seedThingsTables(
+            db,
+            testUsers,
+            testThings
+          )
+        );
+
+        it('responds 401 "Missing basic token" when missing basic token', () => {
+          return supertest(app)
+            .get('/api/things/123')
+            .expect(401, missingBasicToken);
+        });
+      });
+    });
 
     describe('GET /api/things/:thing_id/reviews', () => {
-      context('Given no things', () => {
+      context('Given invalid or missing credentials', () => {
+        beforeEach(() =>
+          helpers.seedThingsTables(
+            db,
+            testUsers,
+            testThings
+          )
+        );
+
+        it('responds 401 "unauthorized request" when no credentials provided', () => {
+          const userNoCreds = { user_name: '', password: '' };
+          return supertest(app)
+            .get('/api/things/123')
+            .set('Authorization', helpers.makeAuthHeader(userNoCreds))
+            .expect(401, unauthorizedRequest);
+        });
+
+        it('responds 401 unauthorized request when invalid user', () => {
+          const invalidUser = { user_name: 'invalid-user', password: 'something' };
+
+          return supertest(app)
+            .get('/api/things/123')
+            .set('Authorization', helpers.makeAuthHeader(invalidUser))
+            .expect(401, unauthorizedRequest);
+        });
+
+        it('respondes 401 "unauthorized request" when invalid password', () => {
+          const testUser = testUsers[0];
+          const invalidPassword = { user_name: testUser.user_name, password: 'invalid-password' };
+
+          return supertest(app)
+            .get('/api/things/123')
+            .set('Authorization', helpers.makeAuthHeader(invalidPassword))
+            .expect(401, unauthorizedRequest);
+        });
+      });
+
+
+      context('Given no reviews for things in the database', () => {
+
+        beforeEach(() =>
+          helpers.seedThingsTables(
+            db,
+            testUsers,
+            testThings
+          )
+        );
 
         it('responds with 404', () => {
           const thingId = 123456;
@@ -98,9 +166,12 @@ describe('Things Endpoints', function () {
             .set('Authorization', helpers.makeAuthHeader(testUsers[0]))
             .expect(404, { error: 'Thing doesn\'t exist' });
         });
+
       });
 
-      context('Given there are reviews for thing in the database', () => {
+
+      context('Given there are reviews for things in the database', () => {
+
         beforeEach('insert things', () =>
           helpers.seedThingsTables(
             db,
@@ -115,25 +186,11 @@ describe('Things Endpoints', function () {
           const expectedReviews = helpers.makeExpectedThingReviews(
             testUsers, thingId, testReviews
           );
-  
+
           return supertest(app)
             .get(`/api/things/${thingId}/reviews`)
             .set('Authorization', helpers.makeAuthHeader(testUsers[0]))
             .expect(200, expectedReviews);
-        });
-    
-        it('responds 401 "Missing basic token" when missing basic token', () => {
-          return supertest(app)
-            .get('/api/things/123')
-            .expect(401, { error: 'Missing basic token.' });
-        });
-
-        it('responds 401 "Unauthorized Request." when no credentials provided', () => {
-          const userNoCreds = { user_name: '', password: '' };
-          return supertest(app)
-            .get('/api/things/123')
-            .set('Authorization', helpers.makeAuthHeader(userNoCreds))
-            .expect(401, { error: 'Unauthorized Request.' });
         });
 
       });

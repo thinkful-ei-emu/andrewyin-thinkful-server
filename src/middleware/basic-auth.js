@@ -4,12 +4,12 @@ async function requireAuth(req, res, next) {
 
   if (!authToken.toLowerCase().startsWith('basic ')) {
     return res.status(401).json({
-      error: 'Missing basic token.'
+      error: 'missing basic token'
     });
   }
   else {
     basicToken = authToken.split(' ')[1];
-    // console.log(basicToken);
+    // basicToken = authToken.slice('basic '.length, authToken.length);
   }
 
   const [tokenUser, tokenPassword] = Buffer
@@ -17,16 +17,30 @@ async function requireAuth(req, res, next) {
     .toString()
     .split(':');
 
-
   // console.log(tokenUser, tokenPassword);
 
   if (!tokenUser || !tokenPassword) {
     return res.status(401).json({
-      error: 'Unauthorized Request.'
+      error: 'unauthorized request'
     });
   }
 
-  next();
+  try {
+    const user = await req.app.get('db')('thingful_users')
+      .where({ user_name: tokenUser })
+      .first();
+
+    if (!user || tokenPassword !== user.password) {
+      return res.status(401).json({ error: 'unauthorized request' });
+    }
+
+    req.user = user;
+
+    next();
+  }
+  catch (e) {
+    next();
+  }
 }
 
 module.exports = {
