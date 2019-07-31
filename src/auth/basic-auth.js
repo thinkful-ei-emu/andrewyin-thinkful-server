@@ -1,5 +1,5 @@
-const bcrypt = require('bcryptjs');
-
+// const bcrypt = require('bcryptjs');
+const AuthService = require('./auth-service');
 
 async function requireAuth(req, res, next) {
   const missingBasicToken = { error: 'missing basic token' };
@@ -27,7 +27,8 @@ async function requireAuth(req, res, next) {
   }
 
   try {
-    const user = await req.app.get('db')('thingful_users')
+    const table = 'thingful_users';
+    const user = await req.app.get('db')(table)
       .where({ user_name: tokenUser })
       .first();
 
@@ -40,7 +41,7 @@ async function requireAuth(req, res, next) {
     // next();
 
     try {
-      const passwordMatch = await bcrypt.compare(tokenPassword, user.password);
+      const passwordMatch = await AuthService.comparePasswords(tokenPassword, user.password);
       if (!passwordMatch) {
         return res.status(401).json(unauthorizedRequest);
       }

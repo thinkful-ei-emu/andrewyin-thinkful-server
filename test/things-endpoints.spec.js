@@ -89,7 +89,7 @@ describe('Things Endpoints', function () {
 
 
   describe('API calls to protected endpoint', () => {
-    const missingBasicToken = { error: 'missing basic token' };
+    const missingToken = { error: 'missing bearer token' };
     const unauthorizedRequest = { error: 'unauthorized request' };
 
     describe('GET /api/things/:thing_id', () => {
@@ -105,7 +105,7 @@ describe('Things Endpoints', function () {
         it('responds 401 "Missing basic token" when missing basic token', () => {
           return supertest(app)
             .get('/api/things/123')
-            .expect(401, missingBasicToken);
+            .expect(401, missingToken);
         });
       });
     });
@@ -120,16 +120,26 @@ describe('Things Endpoints', function () {
           )
         );
 
-        it('responds 401 "unauthorized request" when no credentials provided', () => {
-          const userNoCreds = { user_name: '', password: '' };
+        it('responds 401 unauthorized request when invalid jwt secret', () => {
+          const validUser = testUsers[0];
+          const invalidSecret = 'invalid-secret';
+
           return supertest(app)
             .get('/api/things/123')
-            .set('Authorization', helpers.makeAuthHeader(userNoCreds))
+            .set('Authorization', helpers.makeAuthHeader(validUser, invalidSecret))
             .expect(401, unauthorizedRequest);
         });
 
-        it('responds 401 unauthorized request when invalid user', () => {
-          const invalidUser = { user_name: 'invalid-user', password: 'something' };
+        // it.skip('responds 401 "unauthorized request" when no credentials provided', () => {
+        //   const userNoCreds = { user_name: '', password: '' };
+        //   return supertest(app)
+        //     .get('/api/things/123')
+        //     .set('Authorization', helpers.makeAuthHeader(userNoCreds))
+        //     .expect(401, unauthorizedRequest);
+        // });
+
+        it('responds 401 unauthorized request when invalid subject in payload', () => {
+          const invalidUser = { user_name: 'invalid-user', id: 1 };
 
           return supertest(app)
             .get('/api/things/123')
@@ -137,15 +147,15 @@ describe('Things Endpoints', function () {
             .expect(401, unauthorizedRequest);
         });
 
-        it('respondes 401 "unauthorized request" when invalid password', () => {
-          const testUser = testUsers[0];
-          const invalidPassword = { user_name: testUser.user_name, password: 'invalid-password' };
+        // it.skip('respondes 401 "unauthorized request" when invalid password', () => {
+        //   const testUser = testUsers[0];
+        //   const invalidPassword = { user_name: testUser.user_name, password: 'invalid-password' };
 
-          return supertest(app)
-            .get('/api/things/123')
-            .set('Authorization', helpers.makeAuthHeader(invalidPassword))
-            .expect(401, unauthorizedRequest);
-        });
+        //   return supertest(app)
+        //     .get('/api/things/123')
+        //     .set('Authorization', helpers.makeAuthHeader(invalidPassword))
+        //     .expect(401, unauthorizedRequest);
+        // });
       });
 
 
